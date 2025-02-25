@@ -1,18 +1,64 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
   <head>
-    <title data-i18n="extension_name"></title>
-    <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <title>Hide YouTube Duration</title>
+    <link rel="stylesheet" href="style.css">
   </head>
   <body>
-    <section class="hide-success">
-      <div class="success" data-i18n="duration_hidden"></div>
-    </section>
-    <section class="logs">
-      <h3>Logs</h3>
+    <header>
+      <h1>Hide Duration</h1>
+      <div class="toggle-container">
+        <button id="themeToggle" class="icon-button" title="Toggle theme">
+          <svg class="theme-icon" viewBox="0 0 24 24" width="18" height="18">
+            <path class="sun" d="M12 2L12 4M12 20L12 22M4 12L2 12M22 12L20 12M19.778 19.778L18.364 18.364M5.636 5.636L4.222 4.222M19.778 4.222L18.364 5.636M5.636 18.364L4.222 19.778M16 12C16 14.209 14.209 16 12 16 9.791 16 8 14.209 8 12 8 9.791 9.791 8 12 8 14.209 8 16 9.791 16 12z"/>
+            <path class="moon" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="card keyword-manager">
+      <div class="card-header">
+        <h3>Keywords</h3>
+        <div class="keyword-count" title="Active keywords">0</div>
+      </div>
+      <div class="keyword-input">
+        <input type="text" id="newKeyword" placeholder="Enter keyword">
+        <button id="addKeyword" class="primary-button">Add</button>
+      </div>
+      <div id="keywordsList" class="keywords-list"></div>
+    </div>
+
+    <div class="card settings-section">
+      <div class="card-header">
+        <h3>Settings</h3>
+      </div>
+      <div class="setting-item">
+        <span>Show Current Time</span>
+        <label class="switch">
+          <input type="checkbox" id="showCurrentTime">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="card logs-section">
+      <div class="card-header">
+        <h3>Activity Log</h3>
+        <label class="switch">
+          <input type="checkbox" id="logToggle" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
       <div id="logContainer"></div>
-    </section>
-    <script src="../i18n.js"></script>
+    </div>
+
+    <footer>
+      <div class="stats">
+        <span id="activeVideos">0 videos hidden today</span>
+      </div>
+    </footer>
     <script src="popup.js"></script>
   </body>
 </html>

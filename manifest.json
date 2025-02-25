@@ -1,9 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "__MSG_extension_name__",
+    "name": "Hide YouTube Duration",
     "version": "1.0.4",
-    "default_locale": "en",
-    "description": "__MSG_extension_description__",
+    "description": "Hide video duration on YouTube to avoid spoilers",
     "icons": {
         "16": "src/icons/300.png",
         "48": "src/icons/300.png",
@@ -18,7 +17,6 @@
     },
     "permissions": [
         "activeTab",
-        "declarativeContent",
         "scripting",
         "storage"
     ],
@@ -26,9 +24,6 @@
         "http://www.youtube.com/*",
         "https://www.youtube.com/*"
     ],
-    "options_ui": {
-        "page": "src/options/index.html"
-    },
     "content_scripts": [
         {
             "matches": [

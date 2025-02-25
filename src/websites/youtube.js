@@ -1,153 +1,150 @@
-(function () {
-  console.log("YouTube script initialized");
-
-  // Function for sending log messages.
-  function sendLog(message) {
-    console.log("Attempting to send log:", message);
-    chrome.runtime.sendMessage({ type: "log", message });
-  }
-
-  // Get the video title from the page.
-  function getVideoTitle() {
-    if (!location.href.includes("watch")) return "";
-    let infoRenderer = document.querySelector("ytd-video-primary-info-renderer");
-    if (!infoRenderer) {
-      infoRenderer = document.querySelector("ytd-watch-flexy");
+(() => {
+  const sendLog = async (message) => {
+    console.log("Sending log:", message);
+    try {
+      const response = await chrome.runtime.sendMessage({ 
+        type: "log", 
+        message 
+      });
+      console.log("Log response:", response);
+    } catch (error) {
+      console.error("Error sending log:", error);
     }
+  };
+
+  const getVideoTitle = () => {
+    if (!location.href.includes("watch")) return "";
+    const infoRenderer = document.querySelector("ytd-video-primary-info-renderer") || 
+                        document.querySelector("ytd-watch-flexy");
     if (!infoRenderer) return "";
 
-    // Try shadow DOM first, then fallback.
-    let titleElement = infoRenderer.shadowRoot?.querySelector("h1 yt-formatted-string");
-    if (!titleElement) {
-      titleElement = infoRenderer.querySelector("h1 yt-formatted-string");
-    }
-    const title = titleElement ? titleElement.textContent.trim() : "";
-    console.log("Found video title:", title);
-    return title;
-  }
+    const titleElement = infoRenderer.shadowRoot?.querySelector("h1 yt-formatted-string") ||
+                        infoRenderer.querySelector("h1 yt-formatted-string");
+    return titleElement?.textContent.trim() || "";
+  };
 
-  // Remove previously injected style and buttons if they exist.
-  function clearPreviousInjection() {
-    var styleElement = document.getElementById("hide-timeline-css");
-    if (styleElement) {
-      styleElement.remove();
-    }
-    var buttons = document.querySelectorAll(".custom-seek-button");
-    buttons.forEach(function (button) {
-      button.remove();
+  const clearPreviousInjection = () => {
+    document.getElementById("hide-timeline-css")?.remove();
+    document.querySelectorAll(".custom-seek-button").forEach(button => button.remove());
+  };
+
+  const createSeekButton = (text, duration) => {
+    const button = document.createElement("span");
+    button.classList.add("custom-seek-button");
+    button.innerText = text.replace(" ", "\u2009"); // Thin space
+    button.style.cssText = "cursor: pointer; user-select: none; margin: 0 7px;";
+    button.addEventListener("click", () => {
+      const video = document.querySelector(".html5-main-video");
+      if (video?.currentTime) video.currentTime += duration;
     });
-  }
+    return button;
+  };
 
-  // Hide timeline and add seek buttons on the video player.
-  function hideTimelineAndAddButtons() {
-    // Clear any previous injection.
+  const hideTimelineAndAddButtons = async () => {
     clearPreviousInjection();
 
-    // Inject CSS style to hide timeline elements, with a unique ID.
-    var style = document.createElement("style");
+    const { showCurrentTime = false } = await chrome.storage.sync.get('showCurrentTime');
+    
+    const style = document.createElement("style");
     style.id = "hide-timeline-css";
-    style.innerText =
-      ".ytp-progress-bar-container, .ytp-time-separator, .ytp-time-duration, .video-time { display: none !important; }";
+    style.textContent = `
+      .ytp-progress-bar-container, 
+      .ytp-time-separator, 
+      .ytp-time-duration,
+      ${!showCurrentTime ? '.ytp-time-current,' : ''} 
+      .video-time { 
+        display: none !important; 
+      }`;
     document.head.appendChild(style);
 
-    // Function to adjust video playback.
-    var seekVideo = function (amount) {
-      var video = document.querySelector(".html5-main-video");
-      if (!video || !Number.isFinite(video.currentTime)) return;
-      video.currentTime += amount;
-    };
+    const timeContainer = document.querySelector(".ytp-time-duration")?.parentNode;
+    if (!timeContainer) return;
 
-    // Create a clickable button for seeking.
-    var createButton = function (text, duration) {
-      var el = document.createElement("span");
-      el.classList.add("custom-seek-button"); // Mark for later removal.
-      var thinSpace = " ";
-      el.innerText = text.replace(" ", thinSpace);
-      el.style.cursor = "pointer";
-      el.style.userSelect = "none";
-      el.style.webkitUserSelect = "none";
-      el.addEventListener("click", function () {
-        seekVideo(duration);
-      });
-      return el;
-    };
+    const buttons = [
+      ["-30m", -1800],
+      ["-10m", -600],
+      ["-1m", -60],
+      ["-10s", -10],
+      ["+10s", 10],
+      ["+1m", 60],
+      ["+10m", 600],
+      ["+30m", 1800]
+    ].forEach(([text, duration]) => {
+      timeContainer.appendChild(createSeekButton(text, duration));
+    });
 
-    // Add a button to the video player's time container.
-    var addButton = function (text, duration) {
-      var buttonEl = createButton(text, duration);
-      var timeDuration = document.querySelector(".ytp-time-duration");
-      if (!timeDuration) {
-        console.log("Could not find .ytp-time-duration element to add buttons");
-        return;
-      }
-      var container = timeDuration.parentNode;
-      if (duration < 0) {
-        buttonEl.style.marginRight = "15px";
-        var timeCurrent = document.querySelector(".ytp-time-current");
-        container.insertBefore(buttonEl, timeCurrent);
-      } else {
-        buttonEl.style.marginLeft = "15px";
-        container.appendChild(buttonEl);
-      }
-    };
+    sendLog("Timeline hidden and seek buttons added");
+  };
 
-    // Add seek buttons.
-    addButton("-10 min", -600);
-    addButton("-1 min", -60);
-    addButton("-10 s", -10);
-    addButton("+10 s", 10);
-    addButton("+1 min", 60);
-    addButton("+10 min", 600);
-
-    sendLog("Injected CSS and buttons because title contains 'Masters'.");
-  }
-
-  // Track the last processed video title so that we only process when a new video loads.
   let lastVideoTitle = "";
 
-  // Wait for the video title element to appear and then process it.
-  function waitForVideoTitle() {
-    let attempts = 0;
-    const maxAttempts = 20;
-    console.log("Starting to wait for video title");
+  const processVideo = async () => {
+    const videoTitle = getVideoTitle();
+    console.log("Processing video, title:", videoTitle);
+    console.log("Last title:", lastVideoTitle);
+    
+    if (!videoTitle) {
+      console.log("No video title found");
+      return;
+    }
+    
+    if (videoTitle === lastVideoTitle) {
+      console.log("Same title as before, skipping");
+      return;
+    }
 
-    const interval = setInterval(() => {
-      const videoTitle = getVideoTitle();
-      console.log("Attempt " + (attempts + 1) + ": Title = \"" + videoTitle + "\"");
+    lastVideoTitle = videoTitle;
 
-      if (videoTitle) {
-        clearInterval(interval);
-        if (videoTitle !== lastVideoTitle) {
-          lastVideoTitle = videoTitle;
-          sendLog("Video title found: " + videoTitle);
-          if (videoTitle.toLowerCase().includes("masters")) {
-            hideTimelineAndAddButtons();
-          } else {
-            sendLog("Video title does not contain 'Masters'. No changes applied.");
-            // Optionally clear injection if navigating from a "Masters" video to a non-"Masters" video.
-            clearPreviousInjection();
-          }
-        }
-      } else if (++attempts >= maxAttempts) {
-        clearInterval(interval);
-        sendLog("Video title not found after waiting.");
+    try {
+      const result = await chrome.storage.sync.get('keywords');
+      const keywords = result.keywords || ['masters'];
+      console.log("Current keywords:", keywords);
+      
+      const titleLower = videoTitle.toLowerCase();
+      const shouldHide = keywords.some(keyword => titleLower.includes(keyword.toLowerCase()));
+      
+      if (shouldHide) {
+        await sendLog(`Hiding duration for video: ${videoTitle}`);
+        hideTimelineAndAddButtons();
+      } else {
+        await sendLog(`No keywords matched for: ${videoTitle}`);
+        clearPreviousInjection();
       }
-    }, 500);
-  }
+    } catch (error) {
+      console.error("Error processing video:", error);
+    }
+  };
 
-  // Process immediately if the document is already ready, else wait for DOMContentLoaded.
+  const init = () => {
+    console.log("Initializing YouTube script");
+    processVideo();
+    
+    // Create observer for title changes
+    const observer = new MutationObserver(() => {
+      console.log("DOM mutation detected, checking video...");
+      processVideo();
+    });
+    
+    observer.observe(document.body, { 
+      subtree: true, 
+      childList: true 
+    });
+    
+    console.log("Observer set up");
+  };
+
   if (document.readyState === "complete" || document.readyState === "interactive") {
-    console.log("Document ready, starting immediately");
-    waitForVideoTitle();
+    init();
   } else {
-    console.log("Document not ready, waiting for DOMContentLoaded");
-    document.addEventListener("DOMContentLoaded", waitForVideoTitle);
+    document.addEventListener("DOMContentLoaded", init);
   }
 
-  // Listen for YouTube navigation events (SPA navigation) to run the title check again.
-  window.addEventListener("yt-navigate-finish", () => {
-    console.log("YouTube navigation finished, checking for video title again.");
-    // Delay a bit to let the new page elements load.
-    setTimeout(waitForVideoTitle, 500);
+  window.addEventListener("yt-navigate-finish", () => setTimeout(processVideo, 500));
+
+  // Add message listener for keyword updates
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'refreshKeywords' || message.type === 'refreshSettings') {
+      processVideo();
+    }
   });
 })();
