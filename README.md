@@ -1,5 +1,5 @@
 # Hide video duration
 
-Hide video duration on video services to avoid spoilers.
+Fork of https://github.com/denis-sokolov/hide-video-duration
 
-![Screenshot of YouTube where the duration is replaced with control buttons](src/screenshots/controls.png)
+Fix up some bugs, add some personal features, modernize some code, etc.
