@@ -1,0 +1,41 @@
+{
+    "manifest_version": 3,
+    "name": "__MSG_extension_name__",
+    "version": "1.0.4",
+    "default_locale": "en",
+    "description": "__MSG_extension_description__",
+    "icons": {
+        "16": "src/icons/300.png",
+        "48": "src/icons/300.png",
+        "128": "src/icons/300.png"
+    },
+    "background": {
+        "service_worker": "src/service-worker.js",
+        "type": "module"
+    },
+    "action": {
+        "default_popup": "src/toolbar/popup.html"
+    },
+    "permissions": [
+        "activeTab",
+        "declarativeContent",
+        "scripting",
+        "storage"
+    ],
+    "host_permissions": [
+        "http://www.youtube.com/*",
+        "https://www.youtube.com/*"
+    ],
+    "options_ui": {
+        "page": "src/options/index.html"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "*://*.youtube.com/*"
+            ],
+            "js": ["src/websites/youtube.js"],
+            "run_at": "document_idle"
+        }
+    ]
+}

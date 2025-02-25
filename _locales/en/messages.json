@@ -1,0 +1,55 @@
+{
+    "extension_name": {
+        "message": "Hide video duration on YouTube by KEVIN",
+        "description": ""
+    },
+    "extension_description": {
+        "message": "Hide video duration on YouTube to avoid spoilers",
+        "description": ""
+    },
+
+    "duration_hidden": {
+        "message": "Video duration has been hidden.",
+        "description": ""
+    },
+    "duration_hidden_automatically": {
+        "message": "Video duration has been hidden automatically.",
+        "description": ""
+    },
+    "add_a_rule_explanation": {
+        "message": "Always hide duration when the title of the video includes",
+        "description": ""
+    },
+    "add_a_rule_save": {
+        "message": "Save",
+        "description": ""
+    },
+    "hide_automatically": {
+        "message": "Hide automatically",
+        "description": ""
+    },
+    "options_title": {
+        "message": "Hide video duration options",
+        "description": ""
+    },
+    "options_existing_rules": {
+        "message": "Existing rules:",
+        "description": ""
+    },
+    "options_remove_rule": {
+        "message": "Remove",
+        "description": ""
+    },
+    "rule_added_success": {
+        "message": "Duration on these videos will now be hidden automatically.",
+        "description": ""
+    },
+    "stop_hiding_automatically": {
+        "message": "Stop doing that",
+        "description": ""
+    },
+    "stopped_hiding_automatically": {
+        "message": "Will not hide the duration automatically anymore on these videos.",
+        "description": ""
+    }
+}
