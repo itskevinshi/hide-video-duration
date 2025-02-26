@@ -2,12 +2,12 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>Hide YouTube Duration</title>
+    <title>SpoilerGuard</title>
     <link rel="stylesheet" href="style.css">
   </head>
   <body>
     <header>
-      <h1>Hide Duration</h1>
+      <h1>SpoilerGuard</h1>
       <div class="toggle-container">
         <button id="themeToggle" class="icon-button" title="Toggle theme">
           <svg class="theme-icon" viewBox="0 0 24 24" width="18" height="18">
@@ -35,9 +35,16 @@
         <h3>Settings</h3>
       </div>
       <div class="setting-item">
-        <span>Show Current Time</span>
+        <span>Show Current Video Timestamp</span>
         <label class="switch">
           <input type="checkbox" id="showCurrentTime">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="setting-item">
+        <span>Hide Thumbnail Durations</span>
+        <label class="switch">
+          <input type="checkbox" id="hideThumbnails" checked>
           <span class="slider"></span>
         </label>
       </div>

@@ -154,12 +154,35 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
       });
     });
-  
+
+    // Initialize settings toggles
+    const initSettings = async () => {
+      const settings = await chrome.storage.sync.get([
+        'showCurrentTime',
+        'hideThumbnails'
+      ]);
+      
+      document.getElementById('showCurrentTime').checked = settings.showCurrentTime || false;
+      document.getElementById('hideThumbnails').checked = settings.hideThumbnails !== false; // Default to true
+    };
+
+    // Add toggle handler for thumbnail durations
+    document.getElementById('hideThumbnails').addEventListener('change', async (e) => {
+      await chrome.storage.sync.set({ hideThumbnails: e.target.checked });
+      
+      // Notify content script to refresh
+      chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        if (tabs[0]) {
+          chrome.tabs.sendMessage(tabs[0].id, { type: 'refreshSettings' });
+        }
+      });
+    });
+
     // Initialize everything
     initLogVisibility();
     await loadKeywords();
     await updateLogs();
-    await initCurrentTimeToggle();
+    await initSettings();
     await updateStats();
   
     // Set up intervals
@@ -172,4 +195,3 @@ document.addEventListener("DOMContentLoaded", async () => {
       clearInterval(statsInterval);
     });
   });
-  
