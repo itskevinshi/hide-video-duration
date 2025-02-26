@@ -45,7 +45,6 @@
 
     const { showCurrentTime = false } = await chrome.storage.sync.get('showCurrentTime');
     
-    // Create more specific and persistent CSS
     const style = document.createElement("style");
     style.id = "hide-timeline-css";
     style.textContent = `
@@ -100,16 +99,13 @@
     sendLog("Timeline hidden and seek buttons added");
   };
 
-  // Add a function to ensure timeline stays hidden
   const ensureTimelineHidden = () => {
     const style = document.getElementById("hide-timeline-css");
     if (!style && lastVideoTitle) {
-      // If our style is missing but we have a video title, reapply
       processVideo();
     }
   };
 
-  // More aggressive checking for player changes
   const observePlayer = () => {
     const playerObserver = new MutationObserver(() => {
       ensureTimelineHidden();
@@ -127,10 +123,7 @@
       }
     };
 
-    // Initial observation
     observePlayerElement();
-
-    // Re-establish observation if player changes
     setInterval(observePlayerElement, 1000);
   };
 
@@ -183,79 +176,99 @@
 
   const processThumbnails = async () => {
     try {
-      // Get all settings at once
+      // Check if extension context is still valid
+      if (!chrome.runtime?.id) {
+        console.log('Extension context invalid - skipping thumbnail processing');
+        return;
+      }
+
       const { keywords = ['masters'], hideThumbnails = true } = await chrome.storage.sync.get(['keywords', 'hideThumbnails']);
       
-      // If thumbnail hiding is disabled, reset any hidden thumbnails and exit
       if (!hideThumbnails) {
-        document.querySelectorAll('[processed-duration]').forEach(el => {
-          el.removeAttribute('processed-duration');
-          const timeStatus = el.querySelector('ytd-thumbnail-overlay-time-status-renderer, .ytp-videowall-still-info-duration');
-          if (timeStatus) {
-            timeStatus.style.cssText = '';
+        const elements = document.querySelectorAll('[processed-duration]');
+        for (const el of elements) {
+          try {
+            const timeStatus = el.querySelector('ytd-thumbnail-overlay-time-status-renderer, .ytp-videowall-still-info-duration');
+            if (timeStatus && timeStatus.style) {
+              timeStatus.style.cssText = '';
+            }
+            el.removeAttribute('processed-duration');
+          } catch (err) {
+            console.log('Skipping element due to error:', err);
+            continue;
           }
-        });
+        }
         return;
       }
       
       const thumbnails = document.querySelectorAll(`
         ytd-thumbnail:not([processed-duration]),
         ytd-rich-item-renderer:not([processed-duration]),
-        ytd-compact-video-renderer:not([processed-duration]),
-        .ytp-videowall-still:not([processed-duration])
+        ytd-compact-video-renderer:not([processed-duration])
       `);
       
       for (const thumbnail of thumbnails) {
-        const timeStatus = thumbnail.querySelector('ytd-thumbnail-overlay-time-status-renderer, .ytp-videowall-still-info-duration');
-        if (!timeStatus) continue;
+        try {
+          const timeStatus = thumbnail.querySelector('ytd-thumbnail-overlay-time-status-renderer');
+          if (!timeStatus || !timeStatus.style) continue;
 
-        const title = getThumbnailTitle(thumbnail);
-        if (!title) continue;
+          const title = getThumbnailTitle(thumbnail);
+          if (!title) continue;
 
-        const titleLower = title.toLowerCase();
-        const shouldHide = keywords.some(keyword => titleLower.includes(keyword.toLowerCase()));
-        
-        // Mark as processed regardless of whether we hide it
-        thumbnail.setAttribute('processed-duration', shouldHide ? 'hidden' : 'shown');
-        
-        if (shouldHide) {
-          timeStatus.style.cssText = 'display: none !important';
-          await sendLog(`Hiding thumbnail duration for: ${title}`);
+          const titleLower = title.toLowerCase();
+          const shouldHide = keywords.some(keyword => titleLower.includes(keyword.toLowerCase()));
+          
+          thumbnail.setAttribute('processed-duration', shouldHide ? 'hidden' : 'shown');
+          
+          if (shouldHide) {
+            timeStatus.style.cssText = 'display: none !important; visibility: hidden !important;';
+          }
+        } catch (err) {
+          console.log('Skipping thumbnail due to error:', err);
+          continue;
         }
       }
     } catch (error) {
       console.error('Error processing thumbnails:', error);
+      // If extension context is invalid, clear interval
+      if (!chrome.runtime?.id) {
+        console.log('Extension context invalid - clearing intervals');
+        clearInterval(thumbnailInterval);
+        clearInterval(timelineInterval);
+      }
     }
   };
 
   const resetThumbnails = () => {
-    // Remove processed flag and restore visibility
-    document.querySelectorAll('[processed-duration]').forEach(el => {
-      el.removeAttribute('processed-duration');
-    });
-    
-    // Reset all possible timestamp elements
-    document.querySelectorAll('ytd-thumbnail-overlay-time-status-renderer, .ytp-videowall-still-info-duration').forEach(el => {
-      el.style.cssText = '';
-    });
-    
-    // Also remove the global CSS if it was applied
-    clearPreviousInjection();
+    try {
+      const elements = document.querySelectorAll('[processed-duration]');
+      for (const el of elements) {
+        try {
+          const timeStatus = el.querySelector('ytd-thumbnail-overlay-time-status-renderer');
+          if (timeStatus && timeStatus.style) {
+            timeStatus.style.cssText = '';
+          }
+          el.removeAttribute('processed-duration');
+        } catch (err) {
+          console.log('Error resetting thumbnail:', err);
+          continue;
+        }
+      }
+    } catch (error) {
+      console.error('Error in resetThumbnails:', error);
+    }
   };
 
   const init = () => {
     console.log("Initializing YouTube script");
     
-    // Initial processing with delay to ensure content is loaded
     setTimeout(() => {
       processVideo();
       processThumbnails();
-      observePlayer(); // Add player observation
-    }, 1500); // Increased from 500ms to 1500ms
+      observePlayer();
+    }, 1500);
     
-    // Create observer for content changes
     const observer = new MutationObserver((mutations) => {
-      // Check if navigation occurred
       const navigationMutation = mutations.some(mutation => 
         mutation.target.nodeName === 'TITLE' || 
         mutation.target.id === 'content' ||
@@ -276,8 +289,6 @@
       childList: true,
       attributeFilter: ['title']
     });
-    
-    console.log("Observer set up");
   };
 
   if (document.readyState === "complete" || document.readyState === "interactive") {
@@ -286,32 +297,34 @@
     document.addEventListener("DOMContentLoaded", init);
   }
 
-  // Handle YouTube spa navigation
   window.addEventListener("yt-navigate-start", resetThumbnails);
   window.addEventListener("yt-navigate-finish", () => {
     setTimeout(() => {
-      // First reset everything
       resetThumbnails();
       clearPreviousInjection();
-      // Then reprocess based on current page
       processVideo();
       processThumbnails();
-      observePlayer(); // Re-establish player observation
-    }, 1000); // Increased from 500ms to 1000ms
+      observePlayer();
+    }, 1000);
   });
 
-  // Process thumbnails less frequently to reduce CPU usage
-  setInterval(processThumbnails, 2000);
+  // Store interval IDs so we can clear them if needed
+  const thumbnailInterval = setInterval(processThumbnails, 5000);
+  const timelineInterval = setInterval(ensureTimelineHidden, 1000);
 
-  // Add periodic check for timeline visibility
-  setInterval(ensureTimelineHidden, 1000);
-
-  // Add message listener for keyword updates
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.type === 'refreshKeywords' || message.type === 'refreshSettings') {
+    if (message.type === 'refreshKeywords') {
       resetThumbnails();
       processVideo();
       processThumbnails();
+    } else if (message.type === 'refreshSettings') {
+      chrome.storage.sync.get(['hideThumbnails'], (result) => {
+        if ('hideThumbnails' in result) {
+          processThumbnails();
+        } else {
+          processVideo();
+        }
+      });
     }
   });
 })();
