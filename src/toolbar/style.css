@@ -189,6 +189,8 @@ input:checked + .slider:before {
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-left: 8px;
+  color: var(--text);
 }
 
 .icon-button:hover {
@@ -246,6 +248,77 @@ input:checked + .slider:before {
 
 .setting-item span {
   color: var(--text);
+}
+
+/* Extension main toggle styles */
+.extension-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 12px;
+}
+
+.extension-toggle .switch {
+  width: 52px; /* Slightly larger than other toggles */
+  height: 28px;
+}
+
+.extension-toggle .slider:before {
+  height: 22px;
+  width: 22px;
+}
+
+.extension-toggle input:checked + .slider {
+  background-color: #4CAF50; /* Different color for main toggle */
+}
+
+.extension-toggle input:not(:checked) + .slider {
+  background-color: #f44336;
+}
+
+.extension-toggle input:checked + .slider:before {
+  transform: translateX(24px);
+}
+
+.extension-toggle .status {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* Fade effect when extension is disabled */
+body.extension-disabled {
+  opacity: 0.7;
+}
+
+body.extension-disabled .card {
+  pointer-events: none;
+  filter: grayscale(30%);
+}
+
+body.extension-disabled .extension-toggle {
+  pointer-events: all;
+  opacity: 1;
+}
+
+.toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto; /* Push controls to the right */
+}
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+}
+
+.theme-toggle .status {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
 }
 
 footer {

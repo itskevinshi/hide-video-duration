@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Theme handling
   const initTheme = () => {
     const theme = localStorage.getItem('theme') || 'light';
-    document.documentElement.setAttribute('data-theme', theme); // Changed from body to documentElement
+    document.documentElement.setAttribute('data-theme', theme);
     return theme;
   };
 
@@ -30,9 +30,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById('themeToggle').addEventListener('click', toggleTheme);
   initTheme();
 
-  // Log visibility toggle
+  // Log visibility toggle - changed default to false
   const initLogVisibility = () => {
-    const isVisible = localStorage.getItem('logVisible') !== 'false';
+    const isVisible = localStorage.getItem('logVisible') === 'true'; // Changed default to false
     logToggle.checked = isVisible;
     logContainer.classList.toggle('hidden', !isVisible);
     return isVisible;
@@ -154,12 +154,39 @@ document.addEventListener("DOMContentLoaded", async () => {
     await sendMessageToActiveTab({ type: 'refreshSettings' });
   });
 
+  // Add extension toggle handling
+  const extensionToggle = document.getElementById('extensionToggle');
+  
+  const initExtensionToggle = async () => {
+    const { enabled = true } = await chrome.storage.sync.get('enabled');
+    extensionToggle.checked = enabled;
+    document.body.classList.toggle('extension-disabled', !enabled);
+    extensionToggle.closest('.extension-toggle').querySelector('.status').textContent = enabled ? 'ON' : 'OFF';
+  };
+
+  extensionToggle.addEventListener('change', async () => {
+    const enabled = extensionToggle.checked;
+    await chrome.storage.sync.set({ enabled });
+    document.body.classList.toggle('extension-disabled', !enabled);
+    extensionToggle.closest('.extension-toggle').querySelector('.status').textContent = enabled ? 'ON' : 'OFF';
+    
+    // Notify all tabs about the state change
+    const tabs = await chrome.tabs.query({ url: "*://*.youtube.com/*" });
+    tabs.forEach(tab => {
+      chrome.tabs.sendMessage(tab.id, { 
+        type: 'extensionState', 
+        enabled 
+      }).catch(() => {/* Ignore errors for inactive tabs */});
+    });
+  });
+
   // Initialize everything
   initLogVisibility();
   await loadKeywords();
   await updateLogs();
   await initSettings();
   await updateStats();
+  await initExtensionToggle();
 
   // Set up intervals
   const logsInterval = setInterval(updateLogs, 2000);

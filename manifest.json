@@ -22,7 +22,9 @@
     ],
     "host_permissions": [
         "http://www.youtube.com/*",
-        "https://www.youtube.com/*"
+        "https://www.youtube.com/*",
+        "http://*/*",
+        "https://*/*"
     ],
     "content_scripts": [
         {
@@ -30,6 +32,15 @@
                 "*://*.youtube.com/*"
             ],
             "js": ["src/websites/youtube.js"],
+            "run_at": "document_idle"
+        },
+        {
+            "matches": [
+                "http://*/*", 
+                "https://*/*"
+            ],
+            "js": ["src/websites/embedded.js"],
+            "all_frames": true,
             "run_at": "document_idle"
         }
     ]
