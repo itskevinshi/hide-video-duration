@@ -14,6 +14,10 @@
     styleElement?.remove();
     styleElement = null;
     document.querySelectorAll(".custom-seek-button").forEach(btn => btn.remove());
+    if (playerObserver) {
+      playerObserver.disconnect();
+      playerObserver = null;
+    }
   };
 
   const injectStyles = async () => {
@@ -188,6 +192,10 @@
   // Monitor navigation
   window.addEventListener('yt-navigate-finish', () => {
     lastVideoId = null;
+    if (playerObserver) {
+      playerObserver.disconnect();
+      playerObserver = null;
+    }
     setupVideoPage();
     processThumbnails();
   });
